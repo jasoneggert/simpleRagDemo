@@ -35,7 +35,8 @@ class AnswerPayload(BaseModel):
 class RetrievalDebug(BaseModel):
     query: str
     top_k: int
-    prompt_preview: str | None = None
+    system_prompt: str
+    user_prompt: str
     retrieved_chunks: list[SourceChunk]
 
 

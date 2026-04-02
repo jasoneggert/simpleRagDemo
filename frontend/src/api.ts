@@ -25,7 +25,8 @@ export type SourceChunk = {
 export type RetrievalDebug = {
   query: string;
   top_k: number;
-  prompt_preview?: string | null;
+  system_prompt: string;
+  user_prompt: string;
   retrieved_chunks: SourceChunk[];
 };
 

@@ -4,7 +4,7 @@ from pydantic import ValidationError
 
 from app.config import settings
 from app.ingest import ingest_seed_docs
-from app.llm import generate_structured_answer, prompt_preview
+from app.llm import generate_structured_answer
 from app.models import AskRequest, AskResponse, RetrievalDebug
 from app.retrieval import retrieve_chunks
 
@@ -41,12 +41,19 @@ def ask_docs(request: AskRequest) -> AskResponse:
     if not settings.demo_mode and not settings.openai_api_key:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured.")
 
-    chunks = retrieve_chunks(question=request.question, top_k=request.top_k)
+    try:
+        chunks = retrieve_chunks(question=request.question, top_k=request.top_k)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
     if not chunks:
         raise HTTPException(status_code=404, detail="No chunks found. Ingest docs first.")
 
     try:
-        answer, prompt = generate_structured_answer(question=request.question, chunks=chunks)
+        answer, system_prompt, user_prompt = generate_structured_answer(
+            question=request.question,
+            chunks=chunks,
+        )
     except ValidationError as exc:
         raise HTTPException(status_code=502, detail=f"Model output failed validation: {exc}") from exc
     except ValueError as exc:
@@ -57,7 +64,8 @@ def ask_docs(request: AskRequest) -> AskResponse:
         debug=RetrievalDebug(
             query=request.question,
             top_k=request.top_k or settings.retrieval_k,
-            prompt_preview=prompt_preview(prompt),
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
             retrieved_chunks=chunks,
         ),
     )

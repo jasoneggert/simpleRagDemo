@@ -239,7 +239,7 @@ button:disabled {
 }
 
 .debug-grid {
-  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .chunk-grid {

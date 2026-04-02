@@ -6,6 +6,10 @@ from chromadb.api.models.Collection import Collection
 from app.config import settings
 
 
+def get_chroma_client() -> PersistentClient:
+    return PersistentClient(path=str(settings.chroma_dir))
+
+
 def get_chroma_collection() -> Collection:
-    client = PersistentClient(path=str(settings.chroma_dir))
+    client = get_chroma_client()
     return client.get_or_create_collection(name=settings.chroma_collection_name)

@@ -5,7 +5,7 @@ from pathlib import Path
 from app.chunking import ChunkRecord, chunk_markdown_file
 from app.config import settings
 from app.embeddings import embed_texts
-from app.vectorstore import get_chroma_collection
+from app.vectorstore import get_chroma_client, get_chroma_collection
 
 
 def load_seed_docs(seed_docs_dir: Path | None = None) -> list[Path]:
@@ -28,6 +28,11 @@ def build_chunks() -> list[ChunkRecord]:
 
 def ingest_seed_docs() -> dict[str, int]:
     chunks = build_chunks()
+    client = get_chroma_client()
+    try:
+        client.delete_collection(name=settings.chroma_collection_name)
+    except Exception:
+        pass
     collection = get_chroma_collection()
 
     if not chunks:

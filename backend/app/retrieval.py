@@ -10,11 +10,19 @@ def retrieve_chunks(question: str, top_k: int | None = None) -> list[SourceChunk
     collection = get_chroma_collection()
     query_embedding = embed_texts([question])[0]
     limit = top_k or settings.retrieval_k
-    result = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=limit,
-        include=["documents", "metadatas", "distances"],
-    )
+    try:
+        result = collection.query(
+            query_embeddings=[query_embedding],
+            n_results=limit,
+            include=["documents", "metadatas", "distances"],
+        )
+    except Exception as exc:
+        mode = "demo mode" if settings.demo_mode else settings.openai_embedding_model
+        raise ValueError(
+            "Vector store query failed. The existing Chroma collection is likely incompatible "
+            f"with the current embedding configuration ({mode}). Re-run POST /ingest after "
+            "changing DEMO_MODE, OPENAI_API_KEY, or OPENAI_EMBEDDING_MODEL."
+        ) from exc
 
     documents = result.get("documents", [[]])[0]
     metadatas = result.get("metadatas", [[]])[0]

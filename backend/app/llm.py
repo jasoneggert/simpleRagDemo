@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from textwrap import shorten
 
 from openai import OpenAI
 from pydantic import BaseModel
@@ -22,7 +21,15 @@ class LlmAnswerPayload(BaseModel):
     confidence: str
 
 
-def build_prompt(question: str, chunks: list[SourceChunk]) -> str:
+SYSTEM_PROMPT = (
+    "You answer questions about local markdown docs. "
+    "Produce structured JSON matching the schema. "
+    "Use only the supplied context. "
+    "Set confidence to low, medium, or high."
+)
+
+
+def build_user_prompt(question: str, chunks: list[SourceChunk]) -> str:
     context_blocks: list[str] = []
     for chunk in chunks:
         heading = f" | heading={chunk.heading}" if chunk.heading else ""
@@ -43,10 +50,6 @@ def build_prompt(question: str, chunks: list[SourceChunk]) -> str:
         f"Question:\n{question}\n\n"
         f"Retrieved context:\n{joined_context}"
     )
-
-
-def prompt_preview(prompt: str, limit: int = 1200) -> str:
-    return shorten(prompt.replace("\n", " "), width=limit, placeholder=" ...")
 
 
 def _extract_quote(text: str, limit: int = 180) -> str:
@@ -89,10 +92,10 @@ def _demo_summary(question: str, chunks: list[SourceChunk]) -> AnswerPayload:
     )
 
 
-def generate_structured_answer(question: str, chunks: list[SourceChunk]) -> tuple[AnswerPayload, str]:
-    prompt = build_prompt(question=question, chunks=chunks)
+def generate_structured_answer(question: str, chunks: list[SourceChunk]) -> tuple[AnswerPayload, str, str]:
+    user_prompt = build_user_prompt(question=question, chunks=chunks)
     if settings.demo_mode:
-        return _demo_summary(question=question, chunks=chunks), prompt
+        return _demo_summary(question=question, chunks=chunks), SYSTEM_PROMPT, user_prompt
 
     client = OpenAI(api_key=settings.openai_api_key)
     response = client.responses.parse(
@@ -100,16 +103,11 @@ def generate_structured_answer(question: str, chunks: list[SourceChunk]) -> tupl
         input=[
             {
                 "role": "system",
-                "content": (
-                    "You answer questions about local markdown docs. "
-                    "Produce structured JSON matching the schema. "
-                    "Use only the supplied context. "
-                    "Set confidence to low, medium, or high."
-                ),
+                "content": SYSTEM_PROMPT,
             },
             {
                 "role": "user",
-                "content": prompt,
+                "content": user_prompt,
             },
         ],
         text_format=LlmAnswerPayload,
@@ -142,4 +140,4 @@ def generate_structured_answer(question: str, chunks: list[SourceChunk]) -> tupl
             "confidence": parsed.confidence,
         }
     )
-    return answer, prompt
+    return answer, SYSTEM_PROMPT, user_prompt

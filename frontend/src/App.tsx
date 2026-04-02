@@ -192,8 +192,13 @@ export default function App() {
             </article>
 
             <article className="debug-card prompt-card">
-              <h3>Prompt Preview</h3>
-              <pre>{result.debug.prompt_preview ?? "No prompt preview available."}</pre>
+              <h3>System Prompt</h3>
+              <pre>{result.debug.system_prompt}</pre>
+            </article>
+
+            <article className="debug-card prompt-card">
+              <h3>User Prompt</h3>
+              <pre>{result.debug.user_prompt}</pre>
             </article>
           </div>
         ) : (
