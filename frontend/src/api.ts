@@ -7,7 +7,9 @@ export type Citation = {
 
 export type AnswerPayload = {
   answer: string;
-  summary: string;
+  rationale: string;
+  recommended_action: string;
+  escalation_required: boolean;
   citations: Citation[];
   confidence: "low" | "medium" | "high";
 };
@@ -39,6 +41,8 @@ export type HealthResponse = {
   status: string;
   collection: string;
   mode?: "demo" | "openai";
+  chunk_count: number;
+  index_ready: boolean;
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";

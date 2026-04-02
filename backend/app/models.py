@@ -26,8 +26,19 @@ class Citation(BaseModel):
 
 
 class AnswerPayload(BaseModel):
-    answer: str = Field(description="Direct answer to the user question.")
-    summary: str = Field(description="One-sentence recap.")
+    answer: str = Field(
+        min_length=12,
+        description="Customer-facing answer to the billing question. Must be non-empty and specific.",
+    )
+    rationale: str = Field(
+        min_length=12,
+        description="Short internal explanation grounded in cited policy. Must be non-empty.",
+    )
+    recommended_action: str = Field(
+        min_length=8,
+        description="Single next step for the support agent. Must be non-empty and operational.",
+    )
+    escalation_required: bool = Field(description="Whether the case should be escalated.")
     citations: list[Citation]
     confidence: Literal["low", "medium", "high"]
 

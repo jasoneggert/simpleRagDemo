@@ -7,6 +7,7 @@ from app.ingest import ingest_seed_docs
 from app.llm import generate_structured_answer
 from app.models import AskRequest, AskResponse, RetrievalDebug
 from app.retrieval import retrieve_chunks
+from app.vectorstore import get_chroma_collection_count
 
 
 app = FastAPI(title="RAG Docs Copilot")
@@ -20,11 +21,14 @@ app.add_middleware(
 
 
 @app.get("/health")
-def healthcheck() -> dict[str, str]:
+def healthcheck() -> dict[str, str | int | bool]:
+    chunk_count = get_chroma_collection_count()
     return {
         "status": "ok",
         "collection": settings.chroma_collection_name,
         "mode": "demo" if settings.demo_mode else "openai",
+        "chunk_count": chunk_count,
+        "index_ready": chunk_count > 0,
     }
 
 

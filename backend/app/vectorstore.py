@@ -13,3 +13,10 @@ def get_chroma_client() -> PersistentClient:
 def get_chroma_collection() -> Collection:
     client = get_chroma_client()
     return client.get_or_create_collection(name=settings.chroma_collection_name)
+
+
+def get_chroma_collection_count() -> int:
+    try:
+        return get_chroma_collection().count()
+    except Exception:
+        return 0
