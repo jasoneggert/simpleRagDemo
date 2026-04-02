@@ -1,0 +1,17 @@
+[project]
+name = "doc-copilot"
+version = "0.1.0"
+description = "Small full-stack RAG Docs Copilot demo"
+requires-python = ">=3.11"
+dependencies = [
+  "chromadb>=1.0.0",
+  "fastapi>=0.115.0",
+  "openai>=1.75.0",
+  "pydantic>=2.11.0",
+  "pydantic-settings>=2.8.0",
+  "uvicorn>=0.34.0",
+]
+
+[tool.uv]
+package = false
+
