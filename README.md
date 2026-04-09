@@ -7,6 +7,86 @@ Small full-stack RAG demo built with:
 - OpenAI
 - Pydantic
 
+## Quick Start
+
+1. Create the Python environment and install backend dependencies.
+```bash
+python3.11 -m venv .venv
+./.venv/bin/python -m pip install --upgrade pip
+./.venv/bin/python -m pip install \
+  chromadb>=1.0.0 \
+  fastapi>=0.115.0 \
+  openai>=1.75.0 \
+  pydantic>=2.11.0 \
+  pydantic-settings>=2.8.0 \
+  tiktoken>=0.9.0 \
+  uvicorn>=0.34.0
+```
+
+2. Install frontend dependencies.
+```bash
+npm --prefix frontend ci
+```
+
+3. Copy the environment template and choose a mode.
+```bash
+cp .env.example .env
+```
+
+4. Start the backend and frontend.
+```bash
+./run-backend.sh
+./run-frontend.sh
+```
+
+Frontend runs at `http://127.0.0.1:5173`. Backend runs at `http://127.0.0.1:8000`.
+
+## Operator Auth
+
+Protected endpoints now require a bearer token. Demo operators live in [backend/fixtures/operators.json](/Users/jasoneggert/misc/docCopilot/backend/fixtures/operators.json).
+
+Demo tokens:
+- `demo-support-token`
+- `demo-admin-token`
+- `demo-finance-token`
+
+Use the token box in the UI or send the header manually:
+
+```bash
+curl -H 'Authorization: Bearer demo-admin-token' http://127.0.0.1:8000/auth/session
+```
+
+## Local Verification
+
+Run the repo verification pipeline locally with:
+
+```bash
+./verify.sh
+```
+
+That script runs:
+- Python compile checks
+- frontend production build
+- demo-mode regression suite against temporary Chroma and SQLite paths
+
+## CI
+
+GitHub Actions now runs the same verification flow from [.github/workflows/ci.yml](/Users/jasoneggert/misc/docCopilot/.github/workflows/ci.yml).
+
+## Deployment Notes
+
+For a basic deployment target, the repo now has clean startup entry points:
+- [run-backend.sh](/Users/jasoneggert/misc/docCopilot/run-backend.sh)
+- [run-frontend.sh](/Users/jasoneggert/misc/docCopilot/run-frontend.sh)
+
+Minimum environment variables for a non-demo deployment:
+- `DEMO_MODE=false`
+- `OPENAI_API_KEY`
+- `OPENAI_CHAT_MODEL`
+- `OPENAI_EMBEDDING_MODEL`
+- `SUPPORT_OPERATORS_PATH`
+- `SUPPORT_DB_PATH`
+
 This repo supports two execution modes:
 - `demo` mode: fully local deterministic embeddings and deterministic answer synthesis for free demos
 - `openai` mode: OpenAI embeddings plus structured generation

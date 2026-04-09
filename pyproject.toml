@@ -13,5 +13,9 @@ dependencies = [
   "uvicorn>=0.34.0",
 ]
 
+[project.scripts]
+eval-billing-support = "backend.scripts.eval_billing_support:main"
+regression-billing-support = "backend.scripts.regression_billing_support:run_regression_suite"
+
 [tool.uv]
 package = false
