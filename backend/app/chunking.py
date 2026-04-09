@@ -20,22 +20,95 @@ class ChunkRecord:
     title: str
     heading: str | None
     content: str
+    topic: str
+    policy_type: str
+    escalation_class: str
+    region: str
+    effective_date: str | None
 
 
 def _normalize_whitespace(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.strip().splitlines()).strip()
 
 
+def _extract_effective_date(text: str) -> str | None:
+    match = re.search(
+        r"(effective(?:\s+date)?|effective\s+on)[:\s]+([A-Za-z]+\s+\d{1,2},\s+\d{4}|\d{4}-\d{2}-\d{2})",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    return match.group(2).strip()
+
+
+def _infer_topic(file_stem: str, heading: str | None, content: str) -> str:
+    haystack = f"{file_stem} {heading or ''} {content}".lower()
+    if any(term in haystack for term in ("vat", "gst", "tax", "reverse-charge")):
+        return "tax"
+    if any(term in haystack for term in ("invoice", "receipt", "billing contact")):
+        return "invoices"
+    if "escalat" in haystack or "finance approval" in haystack:
+        return "escalation"
+    if any(term in haystack for term in ("duplicate charge", "refund", "credit", "proration")):
+        return "refunds"
+    if any(term in haystack for term in ("soft decline", "hard decline", "retry", "card", "payment")):
+        return "payments"
+    return "billing"
+
+
+def _infer_policy_type(topic: str, heading: str | None, content: str) -> str:
+    haystack = f"{heading or ''} {content}".lower()
+    if "vat" in haystack or "gst" in haystack or "tax" in haystack:
+        return "tax_policy"
+    if "receipt" in haystack:
+        return "receipt_policy"
+    if "invoice" in haystack and "refund" not in haystack:
+        return "invoice_policy"
+    if "duplicate" in haystack:
+        return "duplicate_charge_policy"
+    if "refund" in haystack:
+        return "refund_policy"
+    if "decline" in haystack or "retry" in haystack:
+        return "payment_failure_policy"
+    if "escalat" in haystack:
+        return "escalation_policy"
+    return f"{topic}_policy"
+
+
+def _infer_escalation_class(heading: str | None, content: str) -> str:
+    haystack = f"{heading or ''} {content}".lower()
+    if any(term in haystack for term in ("escalation is required", "must escalate", "required for", "fraud", "chargeback")):
+        return "required"
+    if any(term in haystack for term in ("finance approval", "finance operations", "escalate")):
+        return "conditional"
+    return "standard"
+
+
+def _infer_region(content: str) -> str:
+    haystack = content.lower()
+    if any(term in haystack for term in ("vat", "gst", "reverse-charge")):
+        return "tax-region-specific"
+    return "global"
+
+
 @lru_cache(maxsize=4)
-def _get_encoding(model_name: str) -> tiktoken.Encoding:
+def _get_encoding(model_name: str) -> tiktoken.Encoding | None:
     try:
         return tiktoken.encoding_for_model(model_name)
-    except KeyError:
-        return tiktoken.get_encoding("cl100k_base")
+    except Exception:
+        try:
+            return tiktoken.get_encoding("cl100k_base")
+        except Exception:
+            return None
 
 
 def _token_count(text: str) -> int:
-    return len(_get_encoding(settings.openai_embedding_model).encode(text))
+    encoding = _get_encoding(settings.openai_embedding_model)
+    if encoding is not None:
+        return len(encoding.encode(text))
+    # Fallback when local token encodings are unavailable: rough 4-char/token estimate.
+    return max(1, len(text) // 4)
 
 
 def _split_paragraphs(text: str) -> list[str]:
@@ -160,6 +233,15 @@ def chunk_markdown_file(file_path: Path, chunk_size: int, chunk_overlap: int) ->
                     title=title,
                     heading=section_heading,
                     content=content,
+                    topic=_infer_topic(file_path.stem, section_heading, content),
+                    policy_type=_infer_policy_type(
+                        _infer_topic(file_path.stem, section_heading, content),
+                        section_heading,
+                        content,
+                    ),
+                    escalation_class=_infer_escalation_class(section_heading, content),
+                    region=_infer_region(content),
+                    effective_date=_extract_effective_date(content),
                 )
             )
             chunk_index += 1

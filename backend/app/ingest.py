@@ -5,6 +5,7 @@ from pathlib import Path
 from app.chunking import ChunkRecord, chunk_markdown_file
 from app.config import settings
 from app.embeddings import embed_texts
+from app.index_state import build_ingested_metadata, write_index_metadata
 from app.vectorstore import get_chroma_client, get_chroma_collection
 
 
@@ -36,6 +37,7 @@ def ingest_seed_docs() -> dict[str, int]:
     collection = get_chroma_collection()
 
     if not chunks:
+        write_index_metadata(build_ingested_metadata())
         return {"documents": 0, "chunks": 0}
 
     embeddings = embed_texts([chunk.content for chunk in chunks])
@@ -49,10 +51,16 @@ def ingest_seed_docs() -> dict[str, int]:
                 "source_path": chunk.source_path,
                 "title": chunk.title,
                 "heading": chunk.heading or "",
+                "topic": chunk.topic,
+                "policy_type": chunk.policy_type,
+                "escalation_class": chunk.escalation_class,
+                "region": chunk.region,
+                "effective_date": chunk.effective_date or "",
             }
             for chunk in chunks
         ],
     )
+    write_index_metadata(build_ingested_metadata())
     return {
         "documents": len({chunk.document_id for chunk in chunks}),
         "chunks": len(chunks),
