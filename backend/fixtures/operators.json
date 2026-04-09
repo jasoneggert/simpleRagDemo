@@ -1,0 +1,28 @@
+{
+  "operators": [
+    {
+      "operator_id": "op_support_acme",
+      "name": "Avery Support",
+      "role": "support_agent",
+      "token": "demo-support-token",
+      "allowed_workspaces": ["ws_acme", "ws_umbrella"],
+      "can_ingest": false
+    },
+    {
+      "operator_id": "op_admin_ops",
+      "name": "Morgan Ops",
+      "role": "support_admin",
+      "token": "demo-admin-token",
+      "allowed_workspaces": ["ws_acme", "ws_globex", "ws_umbrella", "ws_initech"],
+      "can_ingest": true
+    },
+    {
+      "operator_id": "op_finance_globex",
+      "name": "Jordan Finance",
+      "role": "finance_admin",
+      "token": "demo-finance-token",
+      "allowed_workspaces": ["ws_globex"],
+      "can_ingest": false
+    }
+  ]
+}

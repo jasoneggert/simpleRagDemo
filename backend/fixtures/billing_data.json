@@ -1,0 +1,183 @@
+{
+  "customers": [
+    {
+      "customer_id": "cust_acme",
+      "workspace_id": "ws_acme",
+      "name": "Acme Design",
+      "billing_email": "billing@acme.example",
+      "plan": "pro-monthly",
+      "status": "active",
+      "region": "us",
+      "tax_id_on_file": false,
+      "renewal_date": "2026-04-18",
+      "payment_method_status": "valid",
+      "api_calls_since_renewal": 11,
+      "data_exports_since_renewal": 0,
+      "invited_users_since_renewal": 1
+    },
+    {
+      "customer_id": "cust_globex",
+      "workspace_id": "ws_globex",
+      "name": "Globex Europe",
+      "billing_email": "finance@globex.example",
+      "plan": "enterprise-annual",
+      "status": "active",
+      "region": "eu",
+      "tax_id_on_file": true,
+      "renewal_date": "2026-03-26",
+      "payment_method_status": "valid",
+      "api_calls_since_renewal": 3,
+      "data_exports_since_renewal": 0,
+      "invited_users_since_renewal": 0
+    },
+    {
+      "customer_id": "cust_umbrella",
+      "workspace_id": "ws_umbrella",
+      "name": "Umbrella Health Ops",
+      "billing_email": "ops@umbrella.example",
+      "plan": "startup-monthly",
+      "status": "grace-period",
+      "region": "us",
+      "tax_id_on_file": false,
+      "renewal_date": "2026-04-01",
+      "payment_method_status": "soft_decline",
+      "api_calls_since_renewal": 44,
+      "data_exports_since_renewal": 0,
+      "invited_users_since_renewal": 2
+    },
+    {
+      "customer_id": "cust_initech",
+      "workspace_id": "ws_initech",
+      "name": "Initech",
+      "billing_email": "accounting@initech.example",
+      "plan": "pro-monthly",
+      "status": "active",
+      "region": "us",
+      "tax_id_on_file": false,
+      "renewal_date": "2026-03-29",
+      "payment_method_status": "expired_card",
+      "api_calls_since_renewal": 8,
+      "data_exports_since_renewal": 0,
+      "invited_users_since_renewal": 0
+    }
+  ],
+  "invoices": [
+    {
+      "invoice_id": "inv_acme_2001",
+      "customer_id": "cust_acme",
+      "workspace_id": "ws_acme",
+      "amount_cents": 9900,
+      "currency": "USD",
+      "status": "paid",
+      "issued_at": "2026-04-01T09:10:00Z",
+      "paid_at": "2026-04-01T09:10:14Z",
+      "tax_cents": 0,
+      "billing_reason": "subscription_renewal",
+      "duplicate_group": "dup_acme_apr"
+    },
+    {
+      "invoice_id": "inv_acme_2001_dup",
+      "customer_id": "cust_acme",
+      "workspace_id": "ws_acme",
+      "amount_cents": 9900,
+      "currency": "USD",
+      "status": "paid",
+      "issued_at": "2026-04-01T09:15:00Z",
+      "paid_at": "2026-04-01T09:15:10Z",
+      "tax_cents": 0,
+      "billing_reason": "subscription_renewal",
+      "duplicate_group": "dup_acme_apr"
+    },
+    {
+      "invoice_id": "inv_globex_annual",
+      "customer_id": "cust_globex",
+      "workspace_id": "ws_globex",
+      "amount_cents": 120000,
+      "currency": "EUR",
+      "status": "paid",
+      "issued_at": "2026-03-26T08:00:00Z",
+      "paid_at": "2026-03-26T08:00:20Z",
+      "tax_cents": 22800,
+      "billing_reason": "subscription_renewal",
+      "duplicate_group": null
+    },
+    {
+      "invoice_id": "inv_umbrella_retry",
+      "customer_id": "cust_umbrella",
+      "workspace_id": "ws_umbrella",
+      "amount_cents": 4900,
+      "currency": "USD",
+      "status": "open",
+      "issued_at": "2026-04-01T04:00:00Z",
+      "paid_at": null,
+      "tax_cents": 0,
+      "billing_reason": "subscription_renewal",
+      "duplicate_group": null
+    },
+    {
+      "invoice_id": "inv_initech_hard",
+      "customer_id": "cust_initech",
+      "workspace_id": "ws_initech",
+      "amount_cents": 9900,
+      "currency": "USD",
+      "status": "open",
+      "issued_at": "2026-03-29T11:00:00Z",
+      "paid_at": null,
+      "tax_cents": 0,
+      "billing_reason": "subscription_renewal",
+      "duplicate_group": null
+    }
+  ],
+  "payment_attempts": [
+    {
+      "attempt_id": "pay_acme_1",
+      "invoice_id": "inv_acme_2001",
+      "customer_id": "cust_acme",
+      "status": "succeeded",
+      "processor_reference": "ch_001",
+      "decline_code": null,
+      "attempted_at": "2026-04-01T09:10:14Z",
+      "card_last4": "4242"
+    },
+    {
+      "attempt_id": "pay_acme_2",
+      "invoice_id": "inv_acme_2001_dup",
+      "customer_id": "cust_acme",
+      "status": "succeeded",
+      "processor_reference": "ch_002",
+      "decline_code": null,
+      "attempted_at": "2026-04-01T09:15:10Z",
+      "card_last4": "4242"
+    },
+    {
+      "attempt_id": "pay_globex_1",
+      "invoice_id": "inv_globex_annual",
+      "customer_id": "cust_globex",
+      "status": "succeeded",
+      "processor_reference": "ch_003",
+      "decline_code": null,
+      "attempted_at": "2026-03-26T08:00:20Z",
+      "card_last4": "1881"
+    },
+    {
+      "attempt_id": "pay_umbrella_1",
+      "invoice_id": "inv_umbrella_retry",
+      "customer_id": "cust_umbrella",
+      "status": "failed",
+      "processor_reference": "ch_004",
+      "decline_code": "soft_decline",
+      "attempted_at": "2026-04-01T04:00:10Z",
+      "card_last4": "0085"
+    },
+    {
+      "attempt_id": "pay_initech_1",
+      "invoice_id": "inv_initech_hard",
+      "customer_id": "cust_initech",
+      "status": "failed",
+      "processor_reference": "ch_005",
+      "decline_code": "expired_card",
+      "attempted_at": "2026-03-29T11:00:08Z",
+      "card_last4": "1111"
+    }
+  ]
+}

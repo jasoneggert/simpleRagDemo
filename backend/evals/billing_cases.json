@@ -1,0 +1,194 @@
+[
+  {
+    "id": "duplicate-charge-refund",
+    "question": "A customer says they were charged twice for the same invoice within 24 hours. What should support do?",
+    "expected_topics": ["refunds", "invoices"],
+    "expected_policy_types": ["duplicate_charge_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["refund", "verify"]
+  },
+  {
+    "id": "soft-decline-guidance",
+    "question": "The renewal failed with a soft decline. What should support tell the customer?",
+    "expected_topics": ["payments"],
+    "expected_policy_types": ["payment_failure_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["retry", "bank", "card"]
+  },
+  {
+    "id": "hard-decline-card-update",
+    "question": "The card is expired and the renewal hard declined. What is the right next step?",
+    "expected_topics": ["payments"],
+    "expected_policy_types": ["payment_failure_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["replace", "card"]
+  },
+  {
+    "id": "retry-window-read-only",
+    "question": "When does the workspace become read-only after repeated failed renewal attempts?",
+    "expected_topics": ["payments"],
+    "expected_policy_types": ["payment_failure_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["day 7", "retry"]
+  },
+  {
+    "id": "paid-but-customer-says-failed",
+    "question": "The customer says the charge failed but the dashboard shows the invoice as paid. Should support escalate?",
+    "expected_topics": ["payments", "escalation"],
+    "expected_policy_types": ["payment_failure_policy", "escalation_policy"],
+    "expected_escalation_required": true,
+    "expected_action_keywords": ["escalate", "finance"]
+  },
+  {
+    "id": "missing-processor-reference",
+    "question": "A failed charge is missing a payment processor reference. What should support do?",
+    "expected_topics": ["payments", "escalation"],
+    "expected_policy_types": ["payment_failure_policy", "escalation_policy"],
+    "expected_escalation_required": true,
+    "expected_action_keywords": ["escalate", "finance"]
+  },
+  {
+    "id": "multiple-workspaces-failing-card",
+    "question": "Multiple workspaces failed on the same card within an hour. Does this need escalation?",
+    "expected_topics": ["payments", "escalation"],
+    "expected_policy_types": ["payment_failure_policy", "escalation_policy"],
+    "expected_escalation_required": true,
+    "expected_action_keywords": ["escalate", "finance"]
+  },
+  {
+    "id": "monthly-refund-window",
+    "question": "A monthly subscriber renewed 10 days ago and used fewer than 25 API calls. Are they refundable?",
+    "expected_topics": ["refunds"],
+    "expected_policy_types": ["refund_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["refund", "eligible"]
+  },
+  {
+    "id": "annual-refund-window",
+    "question": "Can an annual plan be refunded within 30 days if the account has not exported data or invited more than 3 users?",
+    "expected_topics": ["refunds"],
+    "expected_policy_types": ["refund_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["refund", "30"]
+  },
+  {
+    "id": "downgrade-no-refund",
+    "question": "The customer downgraded mid-cycle and wants an immediate refund. Is that allowed?",
+    "expected_topics": ["refunds"],
+    "expected_policy_types": ["refund_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["next renewal", "no refund"]
+  },
+  {
+    "id": "upgrade-proration",
+    "question": "What happens when a customer upgrades mid-cycle?",
+    "expected_topics": ["refunds"],
+    "expected_policy_types": ["refund_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["prorated", "invoice"]
+  },
+  {
+    "id": "courtesy-credit-outage",
+    "question": "The platform had a confirmed outage for more than 4 hours in one billing cycle. Can support offer a courtesy credit?",
+    "expected_topics": ["refunds"],
+    "expected_policy_types": ["refund_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["credit", "20 percent"]
+  },
+  {
+    "id": "courtesy-credit-tax-exclusion",
+    "question": "Can a courtesy credit cover taxes on the last invoice?",
+    "expected_topics": ["refunds", "tax"],
+    "expected_policy_types": ["refund_policy", "tax_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["taxes", "not"]
+  },
+  {
+    "id": "vat-finalized-no-manual-refund",
+    "question": "Can support manually refund VAT after an invoice has been finalized?",
+    "expected_topics": ["tax"],
+    "expected_policy_types": ["tax_policy"],
+    "expected_escalation_required": true,
+    "expected_action_keywords": ["finance", "not manually"]
+  },
+  {
+    "id": "reverse-charge-treatment",
+    "question": "When can a customer receive reverse-charge VAT treatment?",
+    "expected_topics": ["tax"],
+    "expected_policy_types": ["tax_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["tax id", "before renewal"]
+  },
+  {
+    "id": "invoice-edit-limits",
+    "question": "Can support change the legal entity name on a finalized invoice?",
+    "expected_topics": ["tax", "invoices"],
+    "expected_policy_types": ["invoice_policy", "tax_policy"],
+    "expected_escalation_required": true,
+    "expected_action_keywords": ["finance approval", "cannot change"]
+  },
+  {
+    "id": "billing-contact-future-invoices",
+    "question": "Can support update billing contact details for future invoices?",
+    "expected_topics": ["invoices"],
+    "expected_policy_types": ["invoice_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["future invoices", "update"]
+  },
+  {
+    "id": "receipt-download",
+    "question": "How should support handle a customer who needs a receipt after a successful payment?",
+    "expected_topics": ["invoices"],
+    "expected_policy_types": ["receipt_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["receipt", "billing portal"]
+  },
+  {
+    "id": "receipt-resend",
+    "question": "If the customer cannot access the billing portal, what should support do for the receipt?",
+    "expected_topics": ["invoices"],
+    "expected_policy_types": ["receipt_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["resend", "receipt"]
+  },
+  {
+    "id": "refund-exception-policy",
+    "question": "A customer wants a refund exception above the published policy. Should support escalate?",
+    "expected_topics": ["escalation", "refunds"],
+    "expected_policy_types": ["escalation_policy", "refund_policy"],
+    "expected_escalation_required": true,
+    "expected_action_keywords": ["escalate", "policy"]
+  },
+  {
+    "id": "chargeback-escalation",
+    "question": "The customer filed a chargeback. What should support do?",
+    "expected_topics": ["escalation"],
+    "expected_policy_types": ["escalation_policy"],
+    "expected_escalation_required": true,
+    "expected_action_keywords": ["escalate", "chargeback"]
+  },
+  {
+    "id": "fraud-claim-escalation",
+    "question": "The customer claims the charge is fraudulent. Does this require escalation?",
+    "expected_topics": ["escalation"],
+    "expected_policy_types": ["escalation_policy"],
+    "expected_escalation_required": true,
+    "expected_action_keywords": ["escalate", "fraud"]
+  },
+  {
+    "id": "tax-reclassification-escalation",
+    "question": "The customer wants tax reclassification after payment. What is the right path?",
+    "expected_topics": ["tax", "escalation"],
+    "expected_policy_types": ["tax_policy", "escalation_policy"],
+    "expected_escalation_required": true,
+    "expected_action_keywords": ["finance", "escalate"]
+  },
+  {
+    "id": "confidence-guidance",
+    "question": "When should support use low confidence in an answer?",
+    "expected_topics": ["escalation"],
+    "expected_policy_types": ["escalation_policy"],
+    "expected_escalation_required": false,
+    "expected_action_keywords": ["manual review", "missing"]
+  }
+]
