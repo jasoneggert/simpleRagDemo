@@ -71,7 +71,7 @@ That script runs:
 
 ## CI
 
-GitHub Actions now runs the same verification flow from [.github/workflows/ci.yml](/Users/jasoneggert/misc/docCopilot/.github/workflows/ci.yml).
+GitHub Actions now runs the same verification flow from [.github/workflows/ci.yml](/Users/jasoneggert/misc/docCopilot/.github/workflows/ci.yml). The workflow installs Python/Node, boots the `verify.sh` pipeline, and exercises the regression suite so agent + observability changes stay guarded before merging.
 
 ## Deployment Notes
 
@@ -90,6 +90,29 @@ Minimum environment variables for a non-demo deployment:
 This repo supports two execution modes:
 - `demo` mode: fully local deterministic embeddings and deterministic answer synthesis for free demos
 - `openai` mode: OpenAI embeddings plus structured generation
+
+## Key Features
+
+- **Workspace-aware agents:** Every `/ask`, `/cases`, and `/actions/approve` call requires a bearer token and is scoped to a workspace defined in `backend/fixtures/operators.json`. Unauthorized workspaces are blocked and logged.
+- **Tool-using agent:** `run_billing_resolution_agent` calls OpenAI with a constrained tool loop (search policy + account/refund tools, capped tool calls, caching) and synthesizes `AnswerPayload`, `ActionProposal`, and debug traces that the frontend renders. Demo mode uses deterministic replicas.
+- **Action approvals:** The agent proposes `issue_refund_request`, `send_receipt_email`, or `escalate_to_finance` actions but never executes them until `/actions/approve` confirms the approval. Action executions are persisted to SQLite and audit logs.
+- **Case memory:** Assign a `case_id` to reuse customer/invoice metadata, retrieve prior turns, and persist notes. Case state is stored in SQLite, and the UI lets you reset or inspect cases.
+- **Operational guardrails:** `AGENT_MAX_LATENCY_MS`, `AGENT_MAX_TOTAL_TOKENS`, and `MAX_AGENT_TOOL_CALLS` keep runtime and costs bounded; breaches generate observability events with `guardrail_reason` and `status = guardrail_blocked`.
+- **Observability + ops panel:** Guardrail events, action executions, and unauthorized access attempts are written to `backend/fixtures/support.sqlite3` and surfaced via `/ops/events`, `/ops/summary`, and the UI operations panel for admin operators.
+
+## Agent & Tooling Details
+
+- `/ingest` chunks docs with proper token counting (`tiktoken` + fallback encoding) and writes metadata like topic/policy_type used by retrieval.
+- The agent always begins with `search_policy`, then optionally calls account/invoice/refund tools based on provided identifiers. Tool traces capture argument/output summaries for the UI.
+- `generate_billing_resolution_answer` stitches retrieved chunks, tool trace, and optional case context into structured JSON (answer, rationale, recommended_action, confidence, citations).
+- Action proposals leverage tool evidence to suggest refunds or escalations; the UI highlights `pending` vs `executed` states.
+- All tooling is backed by `backend/fixtures` for deterministic demo runs and written into SQLite for persistence.
+
+## Operational Notes
+
+- `verify.sh` runs Python compile checks, the frontend production build, and the regression suite (`demo` mode) with temporary Chroma/SQLite paths so regression coverage is lightweight.
+- The regression suite covers duplicate-charge refunds, VAT escalations, receipt actions, chargebacks, workspace scoping, case memory, and permission guards (including unauthorized workspace handling and admin-only ops views).
+- Use `run-backend.sh` + `run-frontend.sh` for consistent local startup and inspect the operations panel (`support_admin`, `finance_admin`) to see real-time guardrail events.
 
 ## What This App Demonstrates
 
