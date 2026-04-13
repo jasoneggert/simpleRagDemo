@@ -235,7 +235,7 @@ def reset_case(case_id: str, authorization: Annotated[str | None, Header()] = No
 
 
 @app.post("/ask", response_model=AskResponse)
-def ask_docs(
+async def ask_docs(
     request: AskRequest,
     authorization: Annotated[str | None, Header()] = None,
 ) -> AskResponse:
@@ -312,9 +312,10 @@ def ask_docs(
         )
 
     try:
-        result = run_billing_resolution_agent(
+        effective_top_k = min(request.top_k or settings.retrieval_k, 3)
+        result = await run_billing_resolution_agent(
             question=request.question,
-            top_k=request.top_k or settings.retrieval_k,
+            top_k=effective_top_k,
             workspace_id=effective_workspace_id,
             customer_id=effective_customer_id,
             invoice_id=effective_invoice_id,
@@ -442,7 +443,7 @@ def ask_docs(
         debug=RetrievalDebug(
             agent_mode="billing-resolution-agent",
             query=request.question,
-            top_k=request.top_k or settings.retrieval_k,
+            top_k=effective_top_k,
             case_id=request.case_id,
             case_state_summary=case_state_summary,
             workspace_id=effective_workspace_id,

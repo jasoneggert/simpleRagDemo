@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, Callable
 
-from openai import APIConnectionError, APIError, OpenAI
+from openai import APIConnectionError, APIError
+from openai import AsyncOpenAI
 from openai.lib._pydantic import to_strict_json_schema
 from pydantic import BaseModel, Field
 
@@ -22,7 +23,7 @@ from app.support_tools import (
 )
 
 
-MAX_AGENT_TOOL_CALLS = 4
+MAX_AGENT_TOOL_CALLS = 2
 
 
 class AgentExecutionError(RuntimeError):
@@ -276,7 +277,7 @@ def _run_demo_agent(
     )
 
 
-def run_billing_resolution_agent(
+async def run_billing_resolution_agent(
     question: str,
     top_k: int,
     workspace_id: str | None = None,
@@ -332,147 +333,146 @@ def run_billing_resolution_agent(
         f"Persisted case context: {case_context or 'none'}"
     )
 
-    client = OpenAI(api_key=settings.openai_api_key)
-    planning_usage = ModelUsage(input_tokens=0, output_tokens=0, total_tokens=0)
+    async with AsyncOpenAI(api_key=settings.openai_api_key) as client:
+        planning_usage = ModelUsage(input_tokens=0, output_tokens=0, total_tokens=0)
 
-    def add_usage(response_obj: Any) -> None:
-        if getattr(response_obj, "usage", None) is None:
-            return
-        usage = response_obj.usage
-        planning_usage.input_tokens = (planning_usage.input_tokens or 0) + int(getattr(usage, "input_tokens", 0) or 0)
-        planning_usage.output_tokens = (planning_usage.output_tokens or 0) + int(getattr(usage, "output_tokens", 0) or 0)
-        planning_usage.total_tokens = (planning_usage.total_tokens or 0) + int(getattr(usage, "total_tokens", 0) or 0)
-
-    try:
-        response = client.responses.create(
-            model=settings.openai_chat_model,
-            input=prompt,
-            tools=tools,
-            tool_choice="auto",
-            max_tool_calls=MAX_AGENT_TOOL_CALLS,
-            parallel_tool_calls=False,
-            temperature=0,
-        )
-    except APIConnectionError as exc:
-        raise AgentExecutionError(
-            "The billing-resolution agent could not reach OpenAI while planning tool calls. "
-            "Check network connectivity from the backend process and try again."
-        ) from exc
-    except APIError as exc:
-        raise AgentExecutionError(
-            f"The billing-resolution agent failed during tool planning: {exc}"
-        ) from exc
-    add_usage(response)
-
-    calls_made = 0
-    tool_result_cache: dict[tuple[str, str], Any] = {}
-    while calls_made < MAX_AGENT_TOOL_CALLS:
-        tool_calls = [output for output in response.output if output.type == "function_call"]
-        if not tool_calls:
-            break
-
-        outputs = []
-        for call in tool_calls:
-            calls_made += 1
-            name = call.name
-            arguments = json.loads(call.arguments)
-            cache_key = (name, json.dumps(arguments, sort_keys=True))
-            if cache_key in tool_result_cache:
-                cache_hit_count += 1
-                cached_result = tool_result_cache[cache_key]
-                trace.append(
-                    ToolTraceEntry(
-                        tool_name=name,
-                        arguments={key: value for key, value in arguments.items()},
-                        status="ok",
-                        output_summary=f"Cache hit. {_summarize_tool_output(name, cached_result)}",
-                    )
-                )
-                outputs.append(
-                    {
-                        "type": "function_call_output",
-                        "call_id": call.call_id,
-                        "output": json.dumps(_serialize_tool_result(cached_result)),
-                    }
-                )
-                continue
-            try:
-                if name == "search_policy":
-                    chunks, retrieval_strategy, retrieval_reason = retrieve_chunks(
-                        arguments["question"],
-                        top_k=arguments.get("top_k"),
-                    )
-                    retrieved_chunks = chunks
-                    result: Any = {
-                        "retrieval_strategy": retrieval_strategy,
-                        "retrieval_reason": retrieval_reason,
-                        "chunks": [
-                            {
-                                "chunk_id": chunk.chunk_id,
-                                "title": chunk.title,
-                                "heading": chunk.heading,
-                                "topic": chunk.topic,
-                                "policy_type": chunk.policy_type,
-                            }
-                            for chunk in chunks
-                        ],
-                    }
-                else:
-                    impl = tool_impls[name]
-                    result = impl(**arguments)
-                trace.append(
-                    ToolTraceEntry(
-                        tool_name=name,
-                        arguments={key: value for key, value in arguments.items()},
-                        status="ok",
-                        output_summary=_summarize_tool_output(name, result),
-                    )
-                )
-                tool_result_cache[cache_key] = result
-                serialized = _serialize_tool_result(result)
-            except Exception as exc:
-                trace.append(
-                    ToolTraceEntry(
-                        tool_name=name,
-                        arguments={key: value for key, value in arguments.items()},
-                        status="error",
-                        output_summary=str(exc),
-                    )
-                )
-                serialized = {"error": str(exc)}
-
-            outputs.append(
-                {
-                    "type": "function_call_output",
-                    "call_id": call.call_id,
-                    "output": json.dumps(serialized),
-                }
-            )
-
-        if calls_made >= MAX_AGENT_TOOL_CALLS:
-            break
+        def add_usage(response_obj: Any) -> None:
+            if getattr(response_obj, "usage", None) is None:
+                return
+            usage = response_obj.usage
+            planning_usage.input_tokens = (planning_usage.input_tokens or 0) + int(getattr(usage, "input_tokens", 0) or 0)
+            planning_usage.output_tokens = (planning_usage.output_tokens or 0) + int(getattr(usage, "output_tokens", 0) or 0)
+            planning_usage.total_tokens = (planning_usage.total_tokens or 0) + int(getattr(usage, "total_tokens", 0) or 0)
 
         try:
-            response = client.responses.create(
+            response = await client.responses.acreate(
                 model=settings.openai_chat_model,
-                previous_response_id=response.id,
-                input=outputs,
+                input=prompt,
                 tools=tools,
                 tool_choice="auto",
-                max_tool_calls=max(1, MAX_AGENT_TOOL_CALLS - calls_made),
+                max_tool_calls=MAX_AGENT_TOOL_CALLS,
                 parallel_tool_calls=False,
                 temperature=0,
             )
         except APIConnectionError as exc:
             raise AgentExecutionError(
-                "The billing-resolution agent lost connectivity to OpenAI while continuing tool calls. "
+                "The billing-resolution agent could not reach OpenAI while planning tool calls. "
                 "Check network connectivity from the backend process and try again."
             ) from exc
         except APIError as exc:
             raise AgentExecutionError(
-                f"The billing-resolution agent failed while continuing tool calls: {exc}"
+                f"The billing-resolution agent failed during tool planning: {exc}"
             ) from exc
         add_usage(response)
+        calls_made = 0
+        tool_result_cache: dict[tuple[str, str], Any] = {}
+        while calls_made < MAX_AGENT_TOOL_CALLS:
+            tool_calls = [output for output in response.output if output.type == "function_call"]
+            if not tool_calls:
+                break
+
+            outputs = []
+            for call in tool_calls:
+                calls_made += 1
+                name = call.name
+                arguments = json.loads(call.arguments)
+                cache_key = (name, json.dumps(arguments, sort_keys=True))
+                if cache_key in tool_result_cache:
+                    cache_hit_count += 1
+                    cached_result = tool_result_cache[cache_key]
+                    trace.append(
+                        ToolTraceEntry(
+                            tool_name=name,
+                            arguments={key: value for key, value in arguments.items()},
+                            status="ok",
+                            output_summary=f"Cache hit. {_summarize_tool_output(name, cached_result)}",
+                        )
+                    )
+                    outputs.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": call.call_id,
+                            "output": json.dumps(_serialize_tool_result(cached_result)),
+                        }
+                    )
+                    continue
+                try:
+                    if name == "search_policy":
+                        chunks, retrieval_strategy, retrieval_reason = retrieve_chunks(
+                            arguments["question"],
+                            top_k=arguments.get("top_k"),
+                        )
+                        retrieved_chunks = chunks
+                        result: Any = {
+                            "retrieval_strategy": retrieval_strategy,
+                            "retrieval_reason": retrieval_reason,
+                            "chunks": [
+                                {
+                                    "chunk_id": chunk.chunk_id,
+                                    "title": chunk.title,
+                                    "heading": chunk.heading,
+                                    "topic": chunk.topic,
+                                    "policy_type": chunk.policy_type,
+                                }
+                                for chunk in chunks
+                            ],
+                        }
+                    else:
+                        impl = tool_impls[name]
+                        result = impl(**arguments)
+                    trace.append(
+                        ToolTraceEntry(
+                            tool_name=name,
+                            arguments={key: value for key, value in arguments.items()},
+                            status="ok",
+                            output_summary=_summarize_tool_output(name, result),
+                        )
+                    )
+                    tool_result_cache[cache_key] = result
+                    serialized = _serialize_tool_result(result)
+                except Exception as exc:
+                    trace.append(
+                        ToolTraceEntry(
+                            tool_name=name,
+                            arguments={key: value for key, value in arguments.items()},
+                            status="error",
+                            output_summary=str(exc),
+                        )
+                    )
+                    serialized = {"error": str(exc)}
+
+                outputs.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": call.call_id,
+                        "output": json.dumps(serialized),
+                    }
+                )
+
+            if calls_made >= MAX_AGENT_TOOL_CALLS:
+                break
+
+            try:
+                response = await client.responses.acreate(
+                    model=settings.openai_chat_model,
+                    previous_response_id=response.id,
+                    input=outputs,
+                    tools=tools,
+                    tool_choice="auto",
+                    max_tool_calls=max(1, MAX_AGENT_TOOL_CALLS - calls_made),
+                    parallel_tool_calls=False,
+                    temperature=0,
+                )
+            except APIConnectionError as exc:
+                raise AgentExecutionError(
+                    "The billing-resolution agent lost connectivity to OpenAI while continuing tool calls. "
+                    "Check network connectivity from the backend process and try again."
+                ) from exc
+            except APIError as exc:
+                raise AgentExecutionError(
+                    f"The billing-resolution agent failed while continuing tool calls: {exc}"
+                ) from exc
+            add_usage(response)
 
     if not retrieved_chunks:
         retrieved_chunks, retrieval_strategy, retrieval_reason = retrieve_chunks(question, top_k=top_k)

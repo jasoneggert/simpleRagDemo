@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import asyncio
+
 from fastapi import HTTPException
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,11 +25,14 @@ def assert_true(condition: bool, message: str) -> None:
 
 
 def run_regression_suite() -> None:
+    def call_ask(request: AskRequest, authorization: str | None = None):
+        return asyncio.run(ask_docs(request, authorization=authorization))
+
     ingest_seed_docs()
     admin_auth = "Bearer demo-admin-token"
     support_auth = "Bearer demo-support-token"
 
-    duplicate = ask_docs(
+    duplicate = call_ask(
         AskRequest(
             question="A customer says they were charged twice for the same invoice within a day. What should support do?",
             top_k=3,
@@ -45,7 +50,7 @@ def run_regression_suite() -> None:
     assert_true(duplicate.debug.execution.cache_hit_count == 0, "Demo agent should report zero cache hits.")
     assert_true(duplicate.debug.execution.tool_calls_made >= 1, "Execution metrics should report tool usage.")
 
-    vat = ask_docs(
+    vat = call_ask(
         AskRequest(
             question="Can support manually refund VAT after an invoice has been finalized?",
             top_k=3,
@@ -57,7 +62,7 @@ def run_regression_suite() -> None:
     )
     assert_true(vat.answer.escalation_required, "Finalized VAT refund case should escalate.")
 
-    receipt = ask_docs(
+    receipt = call_ask(
         AskRequest(
             question="If the customer cannot access the billing portal, what should support do for the receipt?",
             top_k=3,
@@ -72,7 +77,7 @@ def run_regression_suite() -> None:
         "Receipt case should propose a resend action.",
     )
 
-    chargeback = ask_docs(
+    chargeback = call_ask(
         AskRequest(
             question="The customer filed a chargeback. What should support do?",
             top_k=3,
@@ -83,7 +88,7 @@ def run_regression_suite() -> None:
 
     case_id = "regression_case_memory"
     reset_case_state(case_id)
-    first_turn = ask_docs(
+    first_turn = call_ask(
         AskRequest(
             question="A customer says they were charged twice for the same invoice within a day. What should support do?",
             top_k=3,
@@ -93,7 +98,7 @@ def run_regression_suite() -> None:
         ),
         authorization=admin_auth,
     )
-    second_turn = ask_docs(
+    second_turn = call_ask(
         AskRequest(
             question="Should we just send the receipt as well?",
             top_k=3,
@@ -121,7 +126,7 @@ def run_regression_suite() -> None:
     )
     assert_true("#action_executions" in action.persisted_to, "Action execution should be persisted in the database.")
 
-    support_duplicate = ask_docs(
+    support_duplicate = call_ask(
         AskRequest(
             question="A customer says they were charged twice for the same invoice within a day. What should support do?",
             top_k=3,
@@ -134,7 +139,7 @@ def run_regression_suite() -> None:
     assert_true(support_duplicate.debug.workspace_id == "ws_acme", "Support operator should access allowed workspace.")
 
     try:
-        ask_docs(
+        call_ask(
             AskRequest(
                 question="Can support manually refund VAT after an invoice has been finalized?",
                 top_k=3,
