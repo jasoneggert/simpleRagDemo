@@ -345,7 +345,7 @@ async def run_billing_resolution_agent(
             planning_usage.total_tokens = (planning_usage.total_tokens or 0) + int(getattr(usage, "total_tokens", 0) or 0)
 
         try:
-            response = await client.responses.acreate(
+            response = await client.responses.create(
                 model=settings.openai_chat_model,
                 input=prompt,
                 tools=tools,
@@ -453,7 +453,7 @@ async def run_billing_resolution_agent(
                 break
 
             try:
-                response = await client.responses.acreate(
+                response = await client.responses.create(
                     model=settings.openai_chat_model,
                     previous_response_id=response.id,
                     input=outputs,
